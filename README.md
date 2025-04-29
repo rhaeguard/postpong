@@ -2,6 +2,8 @@
 
 pingpong but with postgres.
 
+https://github.com/user-attachments/assets/c0324554-52d3-4423-b0d0-136fadfee9fc
+
 ```sh
 # example postgres instance
 docker run --name some-postgres -e POSTGRES_PASSWORD=mysecretpassword -d -p 5432:5432 postgres
