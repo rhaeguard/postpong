@@ -163,7 +163,7 @@ begin
 		p_a_active, p_b_active
 	from user_inputs where game_id=1;
 
-	if not p_a_active and not p_b_active then
+	if not p_a_active or not p_b_active then
 		return 2;
 	end if;
 

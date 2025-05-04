@@ -186,29 +186,52 @@ func gameplay(conn *sql.Conn) {
 		y:    0.0,
 	}
 
-	exec(conn, `UPDATE user_inputs SET player_a_active=TRUE WHERE player_a_id=$1 AND game_id=1;`, playerA.id)
-	exec(conn, `UPDATE user_inputs SET player_b_active=TRUE WHERE player_b_id=$1 AND game_id=1;`, playerB.id)
+	var myPlayer = ""
+
+	{
+		var playerAActive, playerBActive bool
+		rows, err := conn.QueryContext(
+			context.Background(),
+			`SELECT player_a_active, player_b_active from user_inputs where game_id=1;`,
+		)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		for rows.Next() {
+			if err := rows.Scan(&playerAActive, &playerBActive); err != nil {
+				panic(err.Error())
+			}
+		}
+		rows.Close()
+
+		if !playerAActive && !playerBActive {
+			myPlayer = "player_a"
+		} else if playerAActive && playerBActive {
+			panic("no slot available, try later!")
+		} else if playerAActive && !playerBActive {
+			myPlayer = "player_b"
+		} else if !playerAActive && playerBActive {
+			myPlayer = "player_a"
+		}
+
+		if myPlayer == "player_a" {
+			exec(conn, `UPDATE user_inputs SET player_a_active=TRUE WHERE player_a_id=$1 AND game_id=1;`, playerA.id)
+		} else {
+			exec(conn, `UPDATE user_inputs SET player_b_active=TRUE WHERE player_b_id=$1 AND game_id=1;`, playerB.id)
+		}
+
+	}
+
+	var player *Player
+
+	if myPlayer == "player_a" {
+		player = &playerA
+	}
 
 	for !rl.WindowShouldClose() {
 		start := time.Now()
 		{
-			{
-				newMove := 0
-				// grab user input section
-				if rl.IsKeyDown(rl.KeyW) {
-					newMove = 1
-				}
-
-				if rl.IsKeyDown(rl.KeyS) {
-					newMove = 2
-				}
-
-				if playerA.move != newMove {
-					exec(conn, `UPDATE user_inputs SET player_a_move=$1 WHERE player_a_id=$2 AND game_id=1;`, newMove, playerA.id)
-					playerA.move = newMove
-				}
-			}
-
 			{
 				newMove := 0
 				// grab user input section
@@ -220,9 +243,13 @@ func gameplay(conn *sql.Conn) {
 					newMove = 2
 				}
 
-				if playerB.move != newMove {
-					exec(conn, `UPDATE user_inputs SET player_b_move=$1 WHERE player_b_id=$2 AND game_id=1;`, newMove, playerB.id)
-					playerB.move = newMove
+				if player.move != newMove {
+					sql := `UPDATE user_inputs SET player_b_move=$1 WHERE player_b_id=$2 AND game_id=1;`
+					if myPlayer == "player_a" {
+						sql = `UPDATE user_inputs SET player_a_move=$1 WHERE player_a_id=$2 AND game_id=1;`
+					}
+					exec(conn, sql, newMove, player.id)
+					player.move = newMove
 				}
 			}
 		}
@@ -286,8 +313,11 @@ func gameplay(conn *sql.Conn) {
 		rl.EndDrawing()
 	}
 
-	exec(conn, `UPDATE user_inputs SET player_a_active=FALSE WHERE player_a_id=$1 AND game_id=1;`, playerA.id)
-	exec(conn, `UPDATE user_inputs SET player_b_active=FALSE WHERE player_b_id=$1 AND game_id=1;`, playerB.id)
+	if myPlayer == "player_a" {
+		exec(conn, `UPDATE user_inputs SET player_a_active=FALSE WHERE player_a_id=$1 AND game_id=1;`, playerA.id)
+	} else {
+		exec(conn, `UPDATE user_inputs SET player_b_active=FALSE WHERE player_b_id=$1 AND game_id=1;`, playerB.id)
+	}
 
 	avg := (total / float32(totalCount)) / 1e6
 	fmt.Printf("Avg Update Time: %.4f\n", avg)
