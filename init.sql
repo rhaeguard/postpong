@@ -152,7 +152,6 @@ declare
    -- checks
    top_check bool;
    bottom_check bool;
-   right_check bool;
    p_a_racket_check bool;
    p_b_racket_check bool;
 begin
@@ -257,16 +256,6 @@ begin
 		i_top_h
 	);
 
-	right_check := check_collision_circle_rec(
-		bx,
-		by_,
-		br, 
-		i_top_x+i_top_w, 
-		i_top_y, 
-		i_top_h, 
-		i_top_w
-	);
-
     -- racket checks
 	p_a_racket_check := check_collision_circle_rec(
 		bx,
@@ -294,10 +283,6 @@ begin
 
 	if top_check then
 		update user_inputs set b_vy = (-bvy) where game_id=1;
-	end if;
-
-	if right_check then
-		update user_inputs set b_vx = (-bvx) where game_id=1;
 	end if;
 
 	if p_a_racket_check or p_b_racket_check then
