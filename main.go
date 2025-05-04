@@ -227,6 +227,8 @@ func gameplay(conn *sql.Conn) {
 
 	if myPlayer == "player_a" {
 		player = &playerA
+	} else {
+		player = &playerB
 	}
 
 	for !rl.WindowShouldClose() {
